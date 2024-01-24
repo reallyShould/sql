@@ -81,3 +81,39 @@ NATURAL JOIN person
 ![image](https://github.com/reallyShould/sql/assets/77869589/d7fa1861-29c2-4791-850b-fe5f5f4f0647)
 
 ## 9 
+```sql
+SELECT name from pizzeria 
+WHERE pizzeria.id NOT IN (SELECT pizzeria_id from person_visits);
+```
+![image](https://github.com/reallyShould/sql/assets/77869589/7b510b7b-5583-4901-9ca9-0a13618abb63)
+
+```sql
+SELECT name
+FROM pizzeria p
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM person_visits pv
+    WHERE pv.pizzeria_id = p.id
+);
+```
+![image](https://github.com/reallyShould/sql/assets/77869589/b51baa52-f979-4fad-bd24-1babb3d99716)
+
+## 10
+```sql
+SELECT
+    p.name AS person_name,
+    m.pizza_name,
+    pz.name AS pizzeria_name
+FROM
+    person p
+JOIN
+    person_order po ON p.id = po.person_id
+JOIN
+    menu m ON po.menu_id = m.id
+JOIN
+    pizzeria pz ON m.pizzeria_id = pz.id
+ORDER BY
+    person_name, pizza_name, pizzeria_name;
+```
+![image](https://github.com/reallyShould/sql/assets/77869589/f91c787d-5da2-4a7f-9d85-67b133fb53a5)
+
