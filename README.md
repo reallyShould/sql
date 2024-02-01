@@ -1,119 +1,96 @@
 # sql
+## 0
+```sql
+SELECT name, rating FROM pizzeria
+LEFT JOIN person_visits
+ON pizzeria.id = person_visits.pizzeria_id
+WHERE person_visits.pizzeria_id is null
+```
+![image](https://github.com/reallyShould/sql/assets/77869589/cb5ee537-04b3-4327-a04d-784d1436ebfd)
+
 ## 1
 ```sql
-SELECT object_name FROM (
-	SELECT name as object_name, 'person' as type FROM person
-	union all
-	SELECT pizza_name, 'pizza' from menu
-	order by type, object_name
-) as type;
+SELECT DISTINCT visit_date FROM person_visits pv
+LEFT JOIN (SELECT missing_date::date FROM generate_series('2022-01-1', '2022-01-10', interval '1 day')
+as missing_date
+JOIN person_visits pv
+ON pv.visit_date = missing_date
+WHERE pv.person_id = 1 OR pv.person_id = 2)
+as md
+ON visit_date = md.missing_date
+WHERE missing_date IS null
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/353d2b33-ff29-477f-b578-4a80c9dd78dc)
+![image](https://github.com/reallyShould/sql/assets/77869589/e0850dcf-cd38-4cf4-89e1-9aef5d547b4e)
 
 ## 2
 ```sql
-SELECT pizza_name FROM menu 
-INTERSECT
-SELECT pizza_name FROM menu
-ORDER BY pizza_name DESC
+SELECT COALESCE (person.name, '-'), i.visit_date, COALESCE (pizzeria.name, '-') FROM (
+	SELECT person_id, visit_date, pizzeria_id FROM person_visits
+	WHERE visit_date BETWEEN '2022-01-01' and '2022-01-03'
+	) as i
+FULL JOIN person
+ON person.id = i.person_id
+FULL JOIN pizzeria
+ON pizzeria.id = i.pizzeria_id
+ORDER BY 1, 2, 3
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/350fc611-0e53-4715-8c1a-07939a3be66f)
+![image](https://github.com/reallyShould/sql/assets/77869589/424fbae2-747d-448a-8ee4-a9f445b51db2)
 
 ## 3
 ```sql
-SELECT order_date as action_date, person_id FROM person_order
-INTERSECT all
-Select visit_date, person_id FROM person_visits
-ORDER BY action_date, person_id desc;
+Надо будет сделать, а пока шиш
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/0b0638c6-317a-4031-b28d-b62ddb597743)
 
 ## 4
 ```sql
-SELECT person_id, order_date FROM person_order
-WHERE order_date = '07-01-2022'
-INTERSECT 
-SELECT person_id, visit_date FROM person_visits
+SELECT pizza_name, pizzeria.name as pizzeria_name, price FROM menu
+JOIN pizzeria
+ON pizzeria.id = menu.pizzeria_id
+WHERE pizza_name = 'mushroom pizza' or pizza_name = 'pepperoni pizza'
+ORDER BY 1, 2
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/a97157a4-d657-4f29-a5ee-30d9b9335c3d)
+![image](https://github.com/reallyShould/sql/assets/77869589/021358af-7770-4935-ad55-6a40ef5ddd63)
 
 ## 5
 ```sql
-SELECT 
-	person.id as "person.id",
-	person.name as "person.name",
-	person.age, person.gender,
-	person.address,
-	pizzeria.id as "pizzeria.id",
-	pizzeria.name as "pizzeria.name",
-	rating 
-from person, pizzeria 
-ORDER BY person.id, pizzeria.id
+SELECT name FROM person
+WHERE person.age > 25 and person.gender = 'female'
+ORDER BY 1
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/ec8c9341-0b50-414e-840d-e4a9fae2cce4)
+![image](https://github.com/reallyShould/sql/assets/77869589/92647251-52db-492e-886b-a4f72c88a3c7)
 
 ## 6
 ```sql
-SELECT action_date, person.name FROM(
-	SELECT order_date as action_date, person_id FROM person_order
-	INTERSECT all
-	Select visit_date, person_id FROM person_visits
-	ORDER BY action_date, person_id desc
-) as foo
-JOIN person on foo.person_id=person.id 
+SELECT menu.pizza_name, pizzeria.name as pizzeria_name FROM person_order
+FULL JOIN person
+ON person.id = person_order.person_id
+FULL JOIN menu
+ON menu.id = person_order.menu_id
+FULL JOIN pizzeria
+ON pizzeria.id = menu.pizzeria_id
+WHERE person.name = 'Denis' or person.name = 'Anna'
+ORDER BY 1, 2
+
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/12d178ea-3eac-46be-957d-54eddf5d3e90)
+![image](https://github.com/reallyShould/sql/assets/77869589/350d3458-598a-4d25-bfc1-44109ee91823)
 
 ## 7
 ```sql
-SELECT order_date, person.name || ' (age:' || person.age || ')' as person_information FROM person_order
-JOIN person on person_order.person_id=person.id
-ORDER by person_information
+SELECT pizzeria.name as pizzeria FROM person_visits
+FULL JOIN pizzeria
+ON pizzeria.id = person_visits.pizzeria_id
+FULL JOIN person
+ON person.id = person_visits.person_id
+FULL JOIN person_order
+ON person_order.order_date = person_visits.visit_date
+FULL JOIN menu
+ON menu.id = person_order.menu_id
+WHERE visit_date = '2022-01-8' and menu.price <= 800 and person.name = 'Dmitriy'
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/acb2a096-8b5b-481f-b231-31b70b21043f)
+![image](https://github.com/reallyShould/sql/assets/77869589/e28a9f74-bd7c-4ff6-ae01-d0225c4258be)
 
 ## 8
 ```sql
-SELECT order_date, person.name || ' (age:' || person.age || ')' as person_information FROM
-	(SELECT order_date, person_id FROM person_order) as s
-NATURAL JOIN person
-```
-![image](https://github.com/reallyShould/sql/assets/77869589/d7fa1861-29c2-4791-850b-fe5f5f4f0647)
 
-## 9 
-```sql
-SELECT name from pizzeria 
-WHERE pizzeria.id NOT IN (SELECT pizzeria_id from person_visits);
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/7b510b7b-5583-4901-9ca9-0a13618abb63)
-
-```sql
-SELECT name
-FROM pizzeria p
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM person_visits pv
-    WHERE pv.pizzeria_id = p.id
-);
-```
-![image](https://github.com/reallyShould/sql/assets/77869589/b51baa52-f979-4fad-bd24-1babb3d99716)
-
-## 10
-```sql
-SELECT
-    p.name AS person_name,
-    m.pizza_name,
-    pz.name AS pizzeria_name
-FROM
-    person p
-JOIN
-    person_order po ON p.id = po.person_id
-JOIN
-    menu m ON po.menu_id = m.id
-JOIN
-    pizzeria pz ON m.pizzeria_id = pz.id
-ORDER BY
-    person_name, pizza_name, pizzeria_name;
-```
-![image](https://github.com/reallyShould/sql/assets/77869589/f91c787d-5da2-4a7f-9d85-67b133fb53a5)
 
