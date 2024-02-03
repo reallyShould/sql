@@ -1,13 +1,13 @@
 # sql
 ## Task 2
 ```sql
-select name, age, address from person;
+SELECT name, age, address FROM person;
 ```
 ![image](https://github.com/reallyShould/sql/assets/77869589/33bb11b9-6752-45c8-8658-7479da92b031)
 
 ## Task 3
 ```sql
-select name, age from person
+SELECT name, age FROM person
 WHERE gender = 'female'
 ORDER BY name
 ```
