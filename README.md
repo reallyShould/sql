@@ -1,140 +1,93 @@
 # sql
 ## 0
 ```sql
-WITH m AS (SELECT * FROM menu WHERE price BETWEEN 800 AND 1000)
-SELECT m.pizza_name, m.price, pz.name as pizzeria_name, pv.visit_date, p.name FROM person_visits pv
-JOIN pizzeria pz
-	ON pz.id = pv.pizzeria_id
-JOIN person_order po
-	ON po.person_id = pv.person_id
-JOIN person p
-	ON p.id = po.person_id
-JOIN m 
-	ON m.pizzeria_id = pv.pizzeria_id
-WHERE p.name = 'Kate'
-ORDER BY 1, 2, 3
+CREATE VIEW v_person_male AS (SELECT name FROM person WHERE gender = 'male');
+CREATE VIEW v_person_female AS (SELECT name FROM person WHERE gender = 'female');
+SELECT * FROM v_person_female
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/e0fa5faf-fa60-44c7-b207-6e5e95bdfe19)
+![image](https://github.com/reallyShould/sql/assets/77869589/f6d7b08c-c8b0-4cbd-84bb-16c82ae29bd7)
 
 ## 1
 ```sql
-SELECT id as menu_id FROM menu
-WHERE id NOT IN (SELECT menu_id FROM person_order)
+SELECT name FROM v_person_female
+UNION
+SELECT name FROM v_person_male
+ORDER BY 1
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/d3c8d85b-786f-46a7-9daa-bc8368641035)
+![image](https://github.com/reallyShould/sql/assets/77869589/f94717b5-8d26-497b-a92e-2af8e46a3fa8)
 
 ## 2
 ```sql
-SELECT menu.pizza_name, menu.price, pizzeria.name as pizzeria_name FROM menu
-JOIN pizzeria
-	ON pizzeria.id = menu.pizzeria_id
-WHERE menu.id NOT IN (SELECT menu_id FROM person_order)
-ORDER BY 1, 2
+CREATE VIEW v_generated_dates AS (
+	SELECT dates::date as generated_date FROM generate_series('2022-01-01', '2022-01-31', interval '1 day') 
+	AS dates
+);
+SELECT * FROM v_generated_dates
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/768db024-7fc6-4ebb-aafd-cf3f05419c14)
+![image](https://github.com/reallyShould/sql/assets/77869589/55194602-2eb6-4784-a33a-9541c686a6ff)
 
 ## 3
-
+```sql
+SELECT * FROM v_generated_dates
+EXCEPT
+SELECT DISTINCT visit_date FROM person_visits WHERE visit_date BETWEEN '2022-01-01' AND '2022-01-31'
+ORDER BY 1
+```
+![image](https://github.com/reallyShould/sql/assets/77869589/04f3b3fb-28d3-4516-8835-b5e3659cdbb9)
 
 ## 4
-
-
-## 5
 ```sql
-WITH andrey_visits AS (
-	SELECT pi.name, pv.visit_date, pi.id FROM person_visits pv
-	JOIN pizzeria pi ON pi.id = pv.pizzeria_id
-	JOIN person p ON p.id = pv.person_id
-	WHERE p.name = 'Andrey' 
-), andrey_orders AS (
-	SELECT pi.name, po.order_date, pi.id FROM person_order po
+
+```
+
+## 5 
+```sql
+CREATE VIEW v_price_with_discount AS (
+	SELECT p.name, pi.name as pizza_name, m.price, m.price * 0.9 AS discount_price
+	FROM person_order po
+	JOIN person p ON p.id = po.person_id
 	JOIN menu m ON m.id = po.menu_id
 	JOIN pizzeria pi ON pi.id = m.pizzeria_id
-	JOIN person p ON p.id = po.person_id
-	WHERE p.name = 'Andrey'
-)
-
-SELECT av.name FROM andrey_visits av
-LEFT JOIN andrey_orders ao ON av.id = ao.id
-WHERE ao.name IS NULL
+  ORDER BY 1, 2, 3, 4
+);
+SELECT * FROM v_price_with_discount
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/da1bf666-5ac1-4695-8702-e6be4c99c4bd)
+![image](https://github.com/reallyShould/sql/assets/77869589/d36b0d54-d55e-4914-a916-d29080b937bd)
 
 ## 6
 ```sql
-SELECT m1.pizza_name, pz1.name as pizzeria_name_1, pz2.name as pizzeria_name_2, m1.price FROM menu m1
-JOIN menu m2 ON m1.pizza_name = m2.pizza_name and m1.price = m2.price
-JOIN pizzeria pz1 ON pz1.id = m1.pizzeria_id
-JOIN pizzeria pz2 ON pz2.id = m2.pizzeria_id
-WHERE pz1.name < pz2.name
-```
-![image](https://github.com/reallyShould/sql/assets/77869589/448915c1-1dcc-4ca5-87ae-23cc172953a1)
-
-## 7 
-```sql
-INSERT INTO menu
-VALUES (19, 2, 'greek pizza', 800);
-```
-![image](https://github.com/reallyShould/sql/assets/77869589/8806e4ad-11e7-4478-b9ca-cfa89c0ed0cd)
-
-## 8 
-```sql
-INSERT INTO menu
-VALUES ((SELECT max(id) + 1 FROM menu), 2, 'sicilian pizza', 900);
-```
-![image](https://github.com/reallyShould/sql/assets/77869589/79b655df-7e2a-4b9e-9199-4c4142a99fa9)
-
-## 9
-```sql
-INSERT INTO person_visits
-VALUES (
-	(SELECT max(id) + 1 FROM person_visits),
-	(SELECT id FROM person WHERE person.name = 'Denis'),
-	(SELECT id FROM pizzeria WHERE pizzeria.name = 'Dominos'),
-	'2022-02-24'
+CREATE MATERIALIZED VIEW mv_dmitriy_visits_and_eats AS (
+	SELECT pz.name FROM person_visits pv
+	JOIN pizzeria pz ON pz.id = pv.pizzeria_id
+	JOIN person p ON p.id = pv.person_id
+	JOIN menu m ON m.pizzeria_id = pz.id
+	WHERE p.name = 'Dmitriy' 
+		  AND pv.visit_date = '2022-01-08' 
+		  AND m.price < 800
 );
-INSERT INTO person_visits
+SELECT * FROM mv_dmitriy_visits_and_eats
+```
+![image](https://github.com/reallyShould/sql/assets/77869589/0d52fda6-6d93-4689-9b2f-3b054b68a19b)
+
+## 7
+```sql
+INSERT INTO person_visits 
 VALUES (
-	(SELECT max(id) + 1 FROM person_visits),
-	(SELECT id FROM person WHERE person.name = 'Irina'),
-	(SELECT id FROM pizzeria WHERE pizzeria.name = 'Dominos'),
-	'2022-02-24'
+	(SELECT MAX(id)+1 FROM person_visits),
+	(SELECT id FROM person WHERE name = 'Dmitriy'),
+	(SELECT pizzeria_id FROM menu WHERE price < 800 AND id != (SELECT id FROM pizzeria WHERE name = 'Papa Johns') LIMIT 1)
 );
+REFRESH MATERIALIZED VIEW mv_dmitriy_visits_and_eats;
 SELECT * FROM person_visits
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/561d3b78-9dfa-4803-9b07-4d7f27f195d4)
+![image](https://github.com/reallyShould/sql/assets/77869589/0bddfb39-3ebe-4c5b-ade3-ecd3622eb2ee)
 
-## 10
+## 8
 ```sql
-INSERT INTO person_order
-VALUES (
-	(SELECT max(id) + 1 FROM person_order),
-	(SELECT id FROM person WHERE person.name = 'Denis'),
-	(SELECT id FROM menu WHERE menu.pizza_name = 'sicilian pizza'),
-	'2022-02-24'
-);
-INSERT INTO person_order
-VALUES (
-	(SELECT max(id) + 1 FROM person_order),
-	(SELECT id FROM person WHERE person.name = 'Irina'),
-	(SELECT id FROM menu WHERE menu.pizza_name = 'sicilian pizza'),
-	'2022-02-24'
-);
-SELECT * FROM person_order
+DROP VIEW v_person_female;
+DROP VIEW v_person_male;
+DROP VIEW v_generated_dates;
+DROP VIEW v_price_with_discount;
+DROP MATERIALIZED VIEW mv_dmitriy_visits_and_eats;
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/344394b0-2bfd-47d8-ac99-d33cbb04ea96)
-
-## 11
-```sql
-UPDATE menu
-SET price = price - price * 0.1
-WHERE menu.pizza_name = 'greek pizza';
-SELECT * FROM menu
-```
-![image](https://github.com/reallyShould/sql/assets/77869589/07ba24d9-5df7-4598-9ed9-7598d8f8cee8)
-
-## 12
-```sql
-
-```
-
+![image](https://github.com/reallyShould/sql/assets/77869589/e1000bf8-d33b-4289-973f-7ebb33b394aa)
