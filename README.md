@@ -1,93 +1,94 @@
 # sql
 ## 0
 ```sql
-CREATE VIEW v_person_male AS (SELECT name FROM person WHERE gender = 'male');
-CREATE VIEW v_person_female AS (SELECT name FROM person WHERE gender = 'female');
-SELECT * FROM v_person_female
+CREATE TABLE person_discounts ( 
+	id BIGINT PRIMARY KEY,
+	person_id BIGINT NOT NULL,
+	pizzeria_id BIGINT NOT NULL,
+	discout FLOAT DEFAULT NULL,
+	CONSTRAINT fk_person_discounts_person_id FOREIGN KEY (person_id) REFERENCES person(id),
+	CONSTRAINT fk_person_discounts_pizzeria_id FOREIGN KEY (pizzeria_id) REFERENCES pizzeria(id)
+  );
+SELECT * FROM person_discounts;
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/f6d7b08c-c8b0-4cbd-84bb-16c82ae29bd7)
+![image](https://github.com/reallyShould/sql/assets/77869589/74e9d8e3-9eff-4a17-800b-b20e5a38764a)
 
 ## 1
 ```sql
-SELECT name FROM v_person_female
-UNION
-SELECT name FROM v_person_male
-ORDER BY 1
+INSERT INTO person_discounts 
+	SELECT
+		ROW_NUMBER() OVER(ORDER BY 1) as id,
+		person_id,
+		pizzeria_id,
+		CASE
+			WHEN count = 1 THEN 10.5
+			WHEN count = 2 THEN 22
+			ELSE 30
+		END
+	FROM (
+		 SELECT po.person_id, m.pizzeria_id, COUNT(*)
+		 FROM person_order po
+		 JOIN menu m ON m.id = po.menu_id
+		 GROUP BY 1, 2
+		 ORDER BY 1, 2
+		 );
+SELECT * FROM person_discounts 
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/f94717b5-8d26-497b-a92e-2af8e46a3fa8)
+![image](https://github.com/reallyShould/sql/assets/77869589/a73179bf-d398-4a3f-8c35-4e6da853934d)
 
 ## 2
 ```sql
-CREATE VIEW v_generated_dates AS (
-	SELECT dates::date as generated_date FROM generate_series('2022-01-01', '2022-01-31', interval '1 day') 
-	AS dates
-);
-SELECT * FROM v_generated_dates
+SELECT 
+	p.name,
+	m.pizza_name, 
+	m.price, 
+	m.price - (m.price / 100 * pd.discout) as discount_price, 
+	pz.name
+FROM person_order po
+JOIN person_discounts pd ON pd.person_id = po.person_id
+JOIN person p ON p.id = pd.person_id
+JOIN pizzeria pz ON pz.id = pd.pizzeria_id
+JOIN menu m ON m.id = po.menu_id
+ORDER BY 1, 2
+
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/55194602-2eb6-4784-a33a-9541c686a6ff)
+![image](https://github.com/reallyShould/sql/assets/77869589/ef9925fa-4a3a-4cd4-bf56-5f0f4a9638d9)
 
 ## 3
 ```sql
-SELECT * FROM v_generated_dates
-EXCEPT
-SELECT DISTINCT visit_date FROM person_visits WHERE visit_date BETWEEN '2022-01-01' AND '2022-01-31'
-ORDER BY 1
+
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/04f3b3fb-28d3-4516-8835-b5e3659cdbb9)
 
 ## 4
 ```sql
-
+ALTER TABLE person_discounts
+	ADD CONSTRAINT ch_nn_person_id CHECK (person_id IS NOT NULL);
+	
+ALTER TABLE person_discounts
+	ADD CONSTRAINT ch_nn_pizzeria_id CHECK (pizzeria_id IS NOT NULL);
+	
+ALTER TABLE person_discounts
+	ADD CONSTRAINT ch_nn_discount CHECK (discout IS NOT NULL);
+	
+ALTER TABLE person_discounts
+	ALTER discout SET DEFAULT 0;
+	
+ALTER TABLE person_discounts
+	ADD CONSTRAINT ch_range_discount CHECK (discout BETWEEN 0 AND 100);
 ```
+![image](https://github.com/reallyShould/sql/assets/77869589/a5afb37e-4982-4284-b871-d77a949de622)
 
-## 5 
+## 5
 ```sql
-CREATE VIEW v_price_with_discount AS (
-	SELECT p.name, pi.name as pizza_name, m.price, m.price * 0.9 AS discount_price
-	FROM person_order po
-	JOIN person p ON p.id = po.person_id
-	JOIN menu m ON m.id = po.menu_id
-	JOIN pizzeria pi ON pi.id = m.pizzeria_id
-  ORDER BY 1, 2, 3, 4
-);
-SELECT * FROM v_price_with_discount
+COMMENT ON TABLE person_discounts IS 'Table with discounts';
+COMMENT ON COLUMN person_discounts.id IS 'Discount id';
+COMMENT ON COLUMN person_discounts.person_id IS 'Person id';
+COMMENT ON COLUMN person_discounts.pizzeria_id IS 'Pizzeria id';
+COMMENT ON COLUMN person_discounts.discout IS 'Discount';
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/d36b0d54-d55e-4914-a916-d29080b937bd)
+![image](https://github.com/reallyShould/sql/assets/77869589/223fa618-f75a-4b77-9c8b-cd43d974a019)
 
-## 6
+## 6 
 ```sql
-CREATE MATERIALIZED VIEW mv_dmitriy_visits_and_eats AS (
-	SELECT pz.name FROM person_visits pv
-	JOIN pizzeria pz ON pz.id = pv.pizzeria_id
-	JOIN person p ON p.id = pv.person_id
-	JOIN menu m ON m.pizzeria_id = pz.id
-	WHERE p.name = 'Dmitriy' 
-		  AND pv.visit_date = '2022-01-08' 
-		  AND m.price < 800
-);
-SELECT * FROM mv_dmitriy_visits_and_eats
-```
-![image](https://github.com/reallyShould/sql/assets/77869589/0d52fda6-6d93-4689-9b2f-3b054b68a19b)
 
-## 7
-```sql
-INSERT INTO person_visits 
-VALUES (
-	(SELECT MAX(id)+1 FROM person_visits),
-	(SELECT id FROM person WHERE name = 'Dmitriy'),
-	(SELECT pizzeria_id FROM menu WHERE price < 800 AND id != (SELECT id FROM pizzeria WHERE name = 'Papa Johns') LIMIT 1)
-);
-REFRESH MATERIALIZED VIEW mv_dmitriy_visits_and_eats;
-SELECT * FROM person_visits
 ```
-![image](https://github.com/reallyShould/sql/assets/77869589/0bddfb39-3ebe-4c5b-ade3-ecd3622eb2ee)
-
-## 8
-```sql
-DROP VIEW v_person_female;
-DROP VIEW v_person_male;
-DROP VIEW v_generated_dates;
-DROP VIEW v_price_with_discount;
-DROP MATERIALIZED VIEW mv_dmitriy_visits_and_eats;
-```
-![image](https://github.com/reallyShould/sql/assets/77869589/e1000bf8-d33b-4289-973f-7ebb33b394aa)
